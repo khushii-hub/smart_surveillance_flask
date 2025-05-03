@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Face Recognition Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .image-container {
+            display: flex;
+            gap: 20px;
+        }
+        .image-box {
+            flex: 1;
+            border: 1px solid #ccc;
+            padding: 10px;
+            text-align: center;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+        }
+        .results {
+            margin-top: 20px;
+        }
+        .alert {
+            color: red;
+            font-weight: bold;
+        }
+        .success {
+            color: green;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Face Recognition Demo</h1>
+        
+        <div>
+            <input type="file" id="imageInput" accept="image/*">
+            <button onclick="processImage()">Process Image</button>
+        </div>
+        
+        <div class="image-container">
+            <div class="image-box">
+                <h3>Original Image</h3>
+                <img id="originalImage" style="display: none;">
+            </div>
+            <div class="image-box">
+                <h3>Result</h3>
+                <img id="resultImage" style="display: none;">
+            </div>
+        </div>
+        
+        <div class="results" id="results">
+            <h3>Detection Results</h3>
+            <div id="faceResults"></div>
+        </div>
+    </div>
+
+    <script>
+        function processImage() {
+            const fileInput = document.getElementById('imageInput');
+            const file = fileInput.files[0];
+            
+            if (!file) {
+                alert('Please select an image');
+                return;
+            }
+            
+            // Display original image
+            const originalImage = document.getElementById('originalImage');
+            originalImage.src = URL.createObjectURL(file);
+            originalImage.style.display = 'block';
+            
+            // Convert image to base64
+            const reader = new FileReader();
+            reader.onload = function() {
+                const base64Image = reader.result;
+                
+                // Send to API
+                fetch('http://localhost:5000/api/detect', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        image: base64Image,
+                        draw_results: true
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    // Display result image
+                    if (data.image) {
+                        const resultImage = document.getElementById('resultImage');
+                        resultImage.src = 'data:image/jpeg;base64,' + data.image;
+                        resultImage.style.display = 'block';
+                    }
+                    
+                    // Display face results
+                    const faceResults = document.getElementById('faceResults');
+                    faceResults.innerHTML = '';
+                    
+                    if (data.faces.length === 0) {
+                        faceResults.innerHTML = '<p>No faces detected</p>';
+                    } else {
+                        data.faces.forEach(face => {
+                            const div = document.createElement('div');
+                            div.className = face.alert ? 'alert' : 'success';
+                            div.innerHTML = `
+                                <p>Name: ${face.name}</p>
+                                <p>Role: ${face.role}</p>
+                                <p>Confidence: ${face.confidence}%</p>
+                                <hr>
+                            `;
+                            faceResults.appendChild(div);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert('Error processing image. Make sure the API server is running.');
+                });
+            };
+            reader.readAsDataURL(file);
+        }
+    </script>
+</body>
+</html> 
