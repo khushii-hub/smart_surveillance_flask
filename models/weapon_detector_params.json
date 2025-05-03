@@ -1,0 +1,1 @@
+{"feature_type": "HOG", "image_size": [100, 100], "n_neighbors": 3, "weapon_types": ["knife", "none"]}
